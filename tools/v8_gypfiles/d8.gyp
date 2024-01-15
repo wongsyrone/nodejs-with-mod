@@ -14,7 +14,7 @@
       'target_name': 'd8',
       'type': 'executable',
       'dependencies': [
-        'v8.gyp:v8',
+        'v8.gyp:v8_snapshot',  # v8.gyp:v8 is a dummy target for static lib
         'v8.gyp:v8_libbase',
         'v8.gyp:v8_libplatform',
         'v8.gyp:generate_bytecode_builtins_list',

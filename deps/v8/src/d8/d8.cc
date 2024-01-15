@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <stack>
 
 #ifdef ENABLE_VTUNE_JIT_INTERFACE
 #include "src/third_party/vtune/v8-vtune.h"
@@ -49,6 +50,7 @@
 #include "src/parsing/scanner-character-streams.h"
 #include "src/profiler/profile-generator.h"
 #include "src/sanitizer/msan.h"
+#include "src/snapshot/code-serializer.h"
 #include "src/snapshot/snapshot.h"
 #include "src/trap-handler/trap-handler.h"
 #include "src/utils/ostreams.h"
@@ -1539,6 +1541,29 @@ void Shell::Load(const v8::FunctionCallbackInfo<v8::Value>& args) {
   }
 }
 
+static
+void MyFullDisassemble(v8::internal::SharedFunctionInfo shared_function) {
+  std::stack<v8::internal::SharedFunctionInfo> st;
+  st.push(shared_function);
+  while(!st.empty()) {
+    auto currShared = st.top();
+    st.pop();
+    v8::internal::Object::cast(currShared).Print(std::cout);
+    if (!currShared.HasBytecodeArray()) continue;
+    auto consts = currShared.GetBytecodeArray().constant_pool();
+    for (int i = 0; i < consts.length(); i++) {
+      auto obj = consts.get(i);
+      if (obj.IsSharedFunctionInfo()) {
+        auto shared = v8::internal::SharedFunctionInfo::cast(obj);
+        st.push(shared);
+      }
+      if (obj.IsByteArray()) {
+        v8::internal::ByteArray::cast(obj).ByteArrayPrint(std::cout);
+      }
+    }
+  }
+}
+
 void Shell::SetTimeout(const v8::FunctionCallbackInfo<v8::Value>& args) {
   Isolate* isolate = args.GetIsolate();
   args.GetReturnValue().Set(v8::Number::New(isolate, 0));
@@ -1913,6 +1938,11 @@ Local<ObjectTemplate> Shell::CreateGlobalTemplate(Isolate* isolate) {
     global_template->Set(isolate, "async_hooks",
                          Shell::CreateAsyncHookTemplate(isolate));
   }
+
+  global_template->Set(
+    String::NewFromUtf8(isolate, "loadjsc", NewStringType::kNormal)
+        .ToLocalChecked(),
+    FunctionTemplate::New(isolate, LoadJSC));
 
   return global_template;
 }
@@ -3778,6 +3808,50 @@ int Shell::Main(int argc, char* argv[]) {
   }
   g_platform.reset();
   return result;
+}
+
+void Shell::LoadJSC(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  auto isolate = reinterpret_cast<i::Isolate*>(args.GetIsolate());
+  for (int i = 0; i < args.Length(); i++) {
+    String::Utf8Value filename(args.GetIsolate(), args[i]);
+    if (*filename == nullptr) {
+      Throw(args.GetIsolate(), "Error loading file name from args");
+      return;
+    }
+    int length = 0;
+    auto filedata = reinterpret_cast<uint8_t*>(ReadChars(*filename, &length));
+    if (filedata == nullptr) {
+      Throw(args.GetIsolate(), "Error reading file content");
+      return;
+    }
+
+    // fix bytecode header
+    auto str =
+        String::NewFromUtf8(args.GetIsolate(), "console.log('hello');").ToLocalChecked();
+    auto script = Script::Compile(args.GetIsolate()->GetCurrentContext(), str)
+                      .ToLocalChecked();
+    auto unboundScript = script->GetUnboundScript();
+
+    auto dummyBytecode = ScriptCompiler::CreateCodeCache(unboundScript);
+
+    // Copy version hash, source hash and flag hash from dummy bytecode to
+    // source bytecode. Offsets of these value may differ in different version
+    // of V8. Refer V8 src/snapshot/code-serializer.h for details.
+    for (int idx = 4; idx < 16; idx++) {
+      filedata[idx] = dummyBytecode->data[idx];
+    }
+    delete dummyBytecode;
+
+    auto scriptdata = new i::ScriptData(filedata, length);
+    auto source = isolate->factory()
+                      ->NewStringFromUtf8(i::CStrVector("console.log('hello');"))
+                      .ToHandleChecked();
+    ScriptOriginOptions soo(false, false, false, false);
+
+    auto fun = i::CodeSerializer::Deserialize(isolate, scriptdata, source, soo)
+                   .ToHandleChecked();
+    MyFullDisassemble(*fun);
+  }
 }
 
 }  // namespace v8

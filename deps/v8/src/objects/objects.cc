@@ -1862,6 +1862,7 @@ void HeapObject::HeapObjectShortPrint(std::ostream& os) {  // NOLINT
     os << accumulator.ToCString().get();
     return;
   }
+  int len;
   switch (map().instance_type()) {
     case MAP_TYPE: {
       os << "<Map";
@@ -1942,11 +1943,22 @@ void HeapObject::HeapObjectShortPrint(std::ostream& os) {  // NOLINT
       os << "<StringTable[" << FixedArray::cast(*this).length() << "]>";
       break;
     case FIXED_ARRAY_TYPE:
-      os << "<FixedArray[" << FixedArray::cast(*this).length() << "]>";
+      len = FixedArray::cast(*this).length();
+      os << "<FixedArray[" << len << "]>";
+      if (len) {
+        os << "\n; #region FixedArray\n";
+        FixedArray::cast(*this).FixedArrayPrint(os);
+        os << "\n; #endregion";
+      }
       break;
     case OBJECT_BOILERPLATE_DESCRIPTION_TYPE:
-      os << "<ObjectBoilerplateDescription[" << FixedArray::cast(*this).length()
-         << "]>";
+      len = FixedArray::cast(*this).length();
+      os << "<ObjectBoilerplateDescription[" << len << "]>";
+      if (len) {
+        os << "\n; #region ObjectBoilerplateDescription\n";
+        ObjectBoilerplateDescription::cast(*this).ObjectBoilerplateDescriptionPrint(os);
+        os << "\n; #endregion";
+      }
       break;
     case FIXED_DOUBLE_ARRAY_TYPE:
       os << "<FixedDoubleArray[" << FixedDoubleArray::cast(*this).length()

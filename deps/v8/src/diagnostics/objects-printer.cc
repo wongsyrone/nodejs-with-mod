@@ -1327,6 +1327,8 @@ void JSFunction::JSFunctionPrint(std::ostream& os) {  // NOLINT
 void SharedFunctionInfo::PrintSourceCode(std::ostream& os) {
   if (HasSourceCode()) {
     os << "\n - source code: ";
+    os << "\n IGNORED printing";
+    return;
     String source = String::cast(Script::cast(script()).source());
     int start = StartPosition();
     int length = EndPosition() - start;
@@ -1410,6 +1412,12 @@ void SharedFunctionInfo::SharedFunctionInfoPrint(std::ostream& os) {  // NOLINT
   } else {
     os << "<none>";
   }
+  os << "\n; #region SharedFunctionInfoDisassembly\n";
+  if (this->HasBytecodeArray()) {
+      this->GetBytecodeArray().Disassemble(os);
+      os << std::flush;
+  }
+  os << "\n; #endregion\n";
   os << "\n";
 }
 

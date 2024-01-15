@@ -1331,6 +1331,13 @@ def configure_v8(o):
     print('Fetching dependencies to build V8 with GN')
     options.build_v8_with_gn = FetchDeps(v8_path)
   o['variables']['build_v8_with_gn'] = b(options.build_v8_with_gn)
+  # must haves
+  o['variables']['v8_enable_disassembler'] = 1
+  o['variables']['v8_enable_object_print'] = 1
+  o['variables']['node_enable_d8'] = b(True)  # use d8 custom command loadjsc to disassemble
+  # other suggestions
+  o['variables']['v8_enable_pointer_compression'] = 0
+  o['variables']['use_goma'] = 0
 
 
 def configure_openssl(o):
