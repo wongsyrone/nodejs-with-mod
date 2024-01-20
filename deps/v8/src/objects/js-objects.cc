@@ -5514,6 +5514,9 @@ Handle<String> JSFunction::ToString(Handle<JSFunction> function) {
   Handle<Object> maybe_class_positions = JSReceiver::GetDataProperty(
       function, isolate->factory()->class_positions_symbol());
   if (maybe_class_positions->IsClassPositions()) {
+    if (String::cast(Script::cast(shared_info->script()).source()).IsUndefined(isolate)) {
+      return isolate->factory()->NewStringFromAsciiChecked("class {}");
+    }
     ClassPositions class_positions =
         ClassPositions::cast(*maybe_class_positions);
     int start_position = class_positions.start();

@@ -42,6 +42,7 @@ bool ParseProgram(ParseInfo* info, Handle<Script> script,
                   Isolate* isolate, ReportErrorsAndStatisticsMode mode) {
   DCHECK(info->flags().is_toplevel());
   DCHECK_NULL(info->literal());
+  if (String::cast(script->source()).IsUndefined(isolate)) return false;
 
   VMState<PARSER> state(isolate);
 
@@ -76,6 +77,7 @@ bool ParseFunction(ParseInfo* info, Handle<SharedFunctionInfo> shared_info,
 
   // Create a character stream for the parser.
   Handle<Script> script(Script::cast(shared_info->script()), isolate);
+  if (String::cast(script->source()).IsUndefined(isolate)) return false;
   Handle<String> source(String::cast(script->source()), isolate);
   isolate->counters()->total_parse_size()->Increment(source->length());
   std::unique_ptr<Utf16CharacterStream> stream(

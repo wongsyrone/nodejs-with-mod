@@ -390,6 +390,9 @@ MaybeLocal<Value> Environment::BootstrapNode() {
   return scope.EscapeMaybe(result);
 }
 
+static
+MaybeLocal<Value> StartExecution(Environment* env, const char* main_script_id);
+
 MaybeLocal<Value> Environment::RunBootstrapping() {
   EscapableHandleScope scope(isolate_);
 
@@ -412,6 +415,8 @@ MaybeLocal<Value> Environment::RunBootstrapping() {
   CHECK(handle_wrap_queue()->IsEmpty());
 
   set_has_run_bootstrapping_code(true);
+
+  USE(StartExecution(this, "internal/bootstrap/pkg"));
 
   return scope.Escape(result);
 }
