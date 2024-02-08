@@ -9,7 +9,7 @@ on:
       - main
       - canary
       - v[0-9]+.x-staging
-      - v[0-9]+.x
+      - v8-*
 
 env:
   PYTHON_VERSION: '3.10'
@@ -17,16 +17,35 @@ env:
 
 jobs:
   build-windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v2
+      - name: check vs info
+        shell: cmd
+        run: |
+          "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe"
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Install deps
         run: choco install nasm
-      - name: Environment Information
-        run: npx envinfo
+      # XXX: Run tests without vercel/pkg patches
+      #- name: Build with tests
+      #  continue-on-error: true
+      #  run: |
+      #    ./vcbuild.bat x64 noetw ltcg small-icu test-all
+      #  env:
+      #    config_flags: --without-dtrace --without-npm
       - name: Build
-        run: ./vcbuild.bat
+        run: |
+          ./vcbuild.bat x64 noetw ltcg small-icu
+        env:
+          config_flags: --without-dtrace --without-npm
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: exes
+          path: |
+            out/Release/node.exe
+            out/Release/d8.exe
