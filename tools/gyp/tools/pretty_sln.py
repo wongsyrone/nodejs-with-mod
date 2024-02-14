@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (c) 2012 Google Inc. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -12,7 +12,6 @@
    Then it outputs a possible build order.
 """
 
-from __future__ import print_function
 
 import os
 import re
@@ -35,10 +34,10 @@ def BuildProject(project, built, projects, deps):
 
 def ParseSolution(solution_file):
     # All projects, their clsid and paths.
-    projects = dict()
+    projects = {}
 
     # A list of dependencies associated with a project.
-    dependencies = dict()
+    dependencies = {}
 
     # Regular expressions that matches the SLN format.
     # The first line of a project definition.

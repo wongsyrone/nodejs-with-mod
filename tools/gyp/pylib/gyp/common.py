@@ -10,17 +10,12 @@ import tempfile
 import sys
 import subprocess
 
-try:
-    from collections.abc import MutableSet
-except ImportError:
-    from collections import MutableSet
-
-PY3 = bytes != str
+from collections.abc import MutableSet
 
 
 # A minimal memoizing decorator. It'll blow up if the args aren't immutable,
 # among other "problems".
-class memoize(object):
+class memoize:
     def __init__(self, func):
         self.func = func
         self.cache = {}
@@ -149,20 +144,16 @@ def RelativePath(path, relative_to, follow_path_symlink=True):
     # symlink, this option has no effect.
 
     # Convert to normalized (and therefore absolute paths).
-    if follow_path_symlink:
-        path = os.path.realpath(path)
-    else:
-        path = os.path.abspath(path)
+    path = os.path.realpath(path) if follow_path_symlink else os.path.abspath(path)
     relative_to = os.path.realpath(relative_to)
 
     # On Windows, we can't create a relative path to a different drive, so just
     # use the absolute path.
-    if sys.platform == "win32":
-        if (
-            os.path.splitdrive(path)[0].lower()
-            != os.path.splitdrive(relative_to)[0].lower()
-        ):
-            return path
+    if sys.platform == "win32" and (
+        os.path.splitdrive(path)[0].lower()
+        != os.path.splitdrive(relative_to)[0].lower()
+    ):
+        return path
 
     # Split the paths into components.
     path_split = path.split(os.path.sep)
@@ -282,10 +273,7 @@ def EncodePOSIXShellArgument(argument):
     if not isinstance(argument, str):
         argument = str(argument)
 
-    if _quote.search(argument):
-        quote = '"'
-    else:
-        quote = ""
+    quote = '"' if _quote.search(argument) else ""
 
     encoded = quote + re.sub(_escape, r"\\\1", argument) + quote
 
@@ -348,7 +336,7 @@ def WriteOnDiff(filename):
     the target if it differs (on close).
   """
 
-    class Writer(object):
+    class Writer:
         """Wrapper around file which only covers the target if it differs."""
 
         def __init__(self):
@@ -459,6 +447,8 @@ def GetFlavor(params):
         return "aix"
     if sys.platform.startswith(("os390", "zos")):
         return "zos"
+    if sys.platform == "os400":
+        return "os400"
 
     return "linux"
 
@@ -468,9 +458,14 @@ def CopyTool(flavor, out_path, generator_flags={}):
   to |out_path|."""
     # aix and solaris just need flock emulation. mac and win use more complicated
     # support scripts.
-    prefix = {"aix": "flock", "solaris": "flock", "mac": "mac", "win": "win"}.get(
-        flavor, None
-    )
+    prefix = {
+        "aix": "flock",
+        "os400": "flock",
+        "solaris": "flock",
+        "mac": "mac",
+        "ios": "mac",
+        "win": "win",
+    }.get(flavor, None)
     if not prefix:
         return
 
@@ -566,8 +561,8 @@ class OrderedSet(MutableSet):
 
     def __repr__(self):
         if not self:
-            return "%s()" % (self.__class__.__name__,)
-        return "%s(%r)" % (self.__class__.__name__, list(self))
+            return f"{self.__class__.__name__}()"
+        return f"{self.__class__.__name__}({list(self)!r})"
 
     def __eq__(self, other):
         if isinstance(other, OrderedSet):
@@ -653,9 +648,7 @@ def IsCygwin():
         out = subprocess.Popen(
             "uname", stdout=subprocess.PIPE, stderr=subprocess.STDOUT
         )
-        stdout, stderr = out.communicate()
-        if PY3:
-            stdout = stdout.decode("utf-8")
+        stdout = out.communicate()[0].decode("utf-8")
         return "CYGWIN" in str(stdout)
     except Exception:
         return False
