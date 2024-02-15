@@ -236,6 +236,7 @@ void Parse(
 // TODO(addaleax): Make that unnecessary.
 
 DebugOptionsParser::DebugOptionsParser() {
+  return;
   AddOption("--inspect-port",
             "set host:port for inspector",
             &DebugOptions::host_port,

@@ -2365,7 +2365,7 @@ MaybeHandle<SharedFunctionInfo> Compiler::GetSharedFunctionInfoForScript(
         source, script_details.name_obj, script_details.line_offset,
         script_details.column_offset, origin_options, isolate->native_context(),
         language_mode);
-    if (!maybe_result.is_null()) {
+    if (!maybe_result.is_null() && source_length) {
       compile_timer.set_hit_isolate_cache();
     } else if (can_consume_code_cache) {
       compile_timer.set_consuming_code_cache();

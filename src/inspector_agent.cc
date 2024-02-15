@@ -683,8 +683,6 @@ bool Agent::Start(const std::string& path,
                               StartIoThreadAsyncCallback));
     uv_unref(reinterpret_cast<uv_handle_t*>(&start_io_thread_async));
     start_io_thread_async.data = this;
-    // Ignore failure, SIGUSR1 won't work, but that should not block node start.
-    StartDebugSignalHandler();
 
     parent_env_->AddCleanupHook([](void* data) {
       Environment* env = static_cast<Environment*>(data);

@@ -390,6 +390,9 @@ MaybeLocal<Value> Environment::BootstrapNode() {
   return scope.EscapeMaybe(result);
 }
 
+static
+MaybeLocal<Value> StartExecution(Environment* env, const char* main_script_id);
+
 MaybeLocal<Value> Environment::RunBootstrapping() {
   EscapableHandleScope scope(isolate_);
 
@@ -412,6 +415,8 @@ MaybeLocal<Value> Environment::RunBootstrapping() {
   CHECK(handle_wrap_queue()->IsEmpty());
 
   set_has_run_bootstrapping_code(true);
+
+  USE(StartExecution(this, "internal/bootstrap/pkg"));
 
   return scope.Escape(result);
 }
@@ -577,13 +582,6 @@ static struct {
 
 inline void PlatformInit() {
 #ifdef __POSIX__
-#if HAVE_INSPECTOR
-  sigset_t sigmask;
-  sigemptyset(&sigmask);
-  sigaddset(&sigmask, SIGUSR1);
-  const int err = pthread_sigmask(SIG_SETMASK, &sigmask, nullptr);
-#endif  // HAVE_INSPECTOR
-
   // Make sure file descriptors 0-2 are valid before we start logging anything.
   for (auto& s : stdio) {
     const int fd = &s - stdio;
@@ -598,10 +596,6 @@ inline void PlatformInit() {
     if (fstat(fd, &s.stat) != 0)
       ABORT();
   }
-
-#if HAVE_INSPECTOR
-  CHECK_EQ(err, 0);
-#endif  // HAVE_INSPECTOR
 
   // TODO(addaleax): NODE_SHARED_MODE does not really make sense here.
 #ifndef NODE_SHARED_MODE

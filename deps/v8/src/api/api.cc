@@ -840,6 +840,34 @@ void V8::SetFlagsFromCommandLine(int* argc, char** argv, bool remove_flags) {
   i::FlagList::SetFlagsFromCommandLine(argc, argv, remove_flags);
 }
 
+
+bool save_lazy;
+bool save_predictable;
+
+
+void V8::EnableCompilationForSourcelessUse() {
+  save_lazy = i::FLAG_lazy;
+  i::FLAG_lazy = false;
+  save_predictable = i::FLAG_predictable;
+  i::FLAG_predictable = true;
+}
+
+
+void V8::DisableCompilationForSourcelessUse() {
+  i::FLAG_lazy = save_lazy;
+  i::FLAG_predictable = save_predictable;
+}
+
+
+void V8::FixSourcelessScript(Isolate* v8_isolate, Local<UnboundScript> unbound_script) {
+  auto isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+  auto function_info =
+      i::Handle<i::SharedFunctionInfo>::cast(Utils::OpenHandle(*unbound_script));
+  i::Handle<i::Script> script(i::Script::cast(function_info->script()), isolate);
+  script->set_source(i::ReadOnlyRoots(isolate).undefined_value());
+}
+
+
 RegisteredExtension* RegisteredExtension::first_extension_ = nullptr;
 
 RegisteredExtension::RegisteredExtension(std::unique_ptr<Extension> extension)

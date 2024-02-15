@@ -409,19 +409,29 @@ SerializedCodeData::SanityCheckResult SerializedCodeData::SanityCheck(
   uint32_t magic_number = GetMagicNumber();
   if (magic_number != kMagicNumber) return MAGIC_NUMBER_MISMATCH;
   uint32_t version_hash = GetHeaderValue(kVersionHashOffset);
-  uint32_t source_hash = GetHeaderValue(kSourceHashOffset);
   uint32_t flags_hash = GetHeaderValue(kFlagHashOffset);
   uint32_t payload_length = GetHeaderValue(kPayloadLengthOffset);
   uint32_t c = GetHeaderValue(kChecksumOffset);
-  if (version_hash != Version::Hash()) return VERSION_MISMATCH;
-  if (source_hash != expected_source_hash) return SOURCE_MISMATCH;
-  if (flags_hash != FlagList::Hash()) return FLAGS_MISMATCH;
+  if (version_hash != Version::Hash()) {
+    base::OS::PrintError("Pkg: VERSION_MISMATCH\n");
+    return VERSION_MISMATCH;
+  }
+  if (flags_hash != FlagList::Hash()) {
+    // base::OS::PrintError("Pkg: FLAGS_MISMATCH\n");
+    return FLAGS_MISMATCH;
+  }
   uint32_t max_payload_length =
       this->size_ -
       POINTER_SIZE_ALIGN(kHeaderSize +
                          GetHeaderValue(kNumReservationsOffset) * kInt32Size);
-  if (payload_length > max_payload_length) return LENGTH_MISMATCH;
-  if (Checksum(ChecksummedContent()) != c) return CHECKSUM_MISMATCH;
+  if (payload_length > max_payload_length) {
+    base::OS::PrintError("Pkg: LENGTH_MISMATCH\n");
+    return LENGTH_MISMATCH;
+  }
+  if (Checksum(ChecksummedContent()) != c) {
+    base::OS::PrintError("Pkg: CHECKSUM_MISMATCH\n");
+    return CHECKSUM_MISMATCH;
+  }
   return CHECK_SUCCESS;
 }
 
